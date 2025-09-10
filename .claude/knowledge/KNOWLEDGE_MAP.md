@@ -1,6 +1,6 @@
 # 📚 Homunculus Knowledge Map
 
-*Last updated: 2025-09-10 20:47*
+*Last updated: 2025-09-10 21:00*
 
 ## 🏗️ Architecture
 - [Homunculus Design](architecture/homunculus-design.md) - Core webhook-Claude bridge architecture
