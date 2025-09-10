@@ -22,3 +22,13 @@ For GitHub Apps, we need to get an installation token and pass it as GH_TOKEN or
 **Files**: server.js
 ---
 
+### [23:50] [gotcha] Claude subprocess command approval
+**Details**: When spawning Claude as a subprocess, it has a security approval mechanism that blocks commands by default. Even with proper GitHub App authentication (GH_TOKEN passed correctly), Claude cannot execute gh commands without user approval. This is a fundamental limitation of Claude's security model when running in subprocess mode. The authentication is working correctly - the issue is Claude's command approval system.
+**Files**: test-claude-subprocess.js, server.js
+---
+
+### [23:53] [config] Claude subprocess tool whitelisting
+**Details**: Claude subprocesses require explicit tool whitelisting to execute commands. Use the --allowed-tools flag with patterns like 'Bash(gh:*)' to allow gh CLI commands. The server now whitelists: gh commands, git commands, Read, Write, Edit, MultiEdit, Grep, Glob, and TodoWrite. This provides security while allowing necessary operations. The whitelisting successfully bypasses Claude's default command approval mechanism while maintaining security boundaries.
+**Files**: server.js, test-claude-subprocess.js
+---
+

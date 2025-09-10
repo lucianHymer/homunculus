@@ -203,7 +203,23 @@ The reviewer will respond in a new session.`;
   console.log('Spawning Claude with prompt:', prompt);
   
   try {
-    const claudeProcess = spawn('claude', ['-p', prompt], {
+    // Whitelist tools: allow all gh commands, git commands, and common file operations
+    const allowedTools = [
+      'Bash(gh:*)',      // All gh CLI commands
+      'Bash(git:*)',     // All git commands
+      'Read',            // Reading files
+      'Write',           // Writing files  
+      'Edit',            // Editing files
+      'MultiEdit',       // Multiple edits
+      'Grep',            // Searching
+      'Glob',            // File patterns
+      'TodoWrite'        // Task management
+    ].join(' ');
+    
+    const claudeProcess = spawn('claude', [
+      '--allowed-tools', allowedTools,
+      '-p', prompt
+    ], {
       cwd: workDir,
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
