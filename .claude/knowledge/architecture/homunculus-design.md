@@ -18,6 +18,30 @@ Homunculus is a minimal webhook server that serves as a bridge between GitHub ev
 - No complex orchestration or state management
 - Claude handles all GitHub interactions using gh CLI
 
+## Phase Implementation Status
+
+### Phase 1 - Basic Webhook Server
+Implemented as a basic Express webhook receiver with:
+- dotenv configuration support
+- GitHub webhook signature validation (HMAC SHA-256)
+- @homunculus mention detection in issue/PR/review bodies
+- Event logging (no action taken yet)
+- Environment variables: PORT and GITHUB_WEBHOOK_SECRET
+
+### Phase 2 - Claude Integration (Overcomplete)
+Successfully implemented with features beyond requirements:
+- Claude spawning with detached processes using spawn()
+- WORKSPACE_DIR environment variable (defaults to /workspace)
+- Repository cloning with gh CLI (graceful fallback to mkdir)
+- Task ID generation for unique work directories ({repo-name}-{8-char-taskId})
+- Process detachment with unref() for immediate server response
+- Claude executes in cloned repo directory
+- Complete command parsing ([review], [accept], PR review)
+- Full event routing (issues, issue_comment, pull_request_review)
+- processWebhook() handles all webhook types
+- Ready for Phase 3-5: Only needs real gh CLI commands at lines ~92, ~97, ~102
+
 ## Related Files
 - `homunculus-plan.md` - Original design document
 - `server.js` - Main webhook server implementation
+- `test-phase2.js` - Phase 2 testing script
