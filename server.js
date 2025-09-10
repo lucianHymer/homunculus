@@ -127,23 +127,38 @@ async function processWebhook(payload, event, body) {
   if (body.includes('[review]') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
     action = 'review';
-    prompt = `Use 'gh issue view ${num} -R ${repo} --comments' to read the issue and all comments.
-Post a comment with your analysis and implementation plan using 'gh issue comment ${num} -R ${repo} -b "your analysis here"'.
-Ask clarifying questions if needed.`;
+    prompt = `You are responding to a GitHub issue where you were mentioned.
+
+First, use 'gh issue view ${num} -R ${repo} --comments' to read the issue and all comments.
+
+Then post your analysis using 'gh issue comment ${num} -R ${repo} -b "your analysis here"'.
+
+IMPORTANT: If you have any clarifying questions, ask them IN THE GITHUB ISSUE COMMENT.
+Do not ask questions here - post them to the issue so the user can respond in a new session.`;
     
   } else if (body.includes('[accept]') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
     action = 'accept';
-    prompt = `Use 'gh issue view ${num} -R ${repo} --comments' to read the issue and discussion.
-Implement the solution in the code, create a new branch, commit your changes, and open a PR.
-Use 'gh pr create' to create the PR and reference issue #${num} in the PR body.`;
+    prompt = `You are implementing a solution for a GitHub issue.
+
+First, use 'gh issue view ${num} -R ${repo} --comments' to read the issue and discussion.
+
+Then implement the solution, create a new branch, commit your changes, and open a PR.
+Use 'gh pr create' to create the PR and reference issue #${num} in the PR body.
+
+IMPORTANT: If you need clarification, post questions to the issue using 'gh issue comment'.
+The user will respond in a new session.`;
     
   } else if (event === 'pull_request_review' && body.includes('@homunculus')) {
     const num = payload.pull_request.number;
     action = 'pr-review';
-    prompt = `Use 'gh pr view ${num} -R ${repo} --comments' to read all review feedback.
+    prompt = `You are responding to PR review feedback.
+
+Use 'gh pr view ${num} -R ${repo} --comments' to read all review feedback.
 Checkout the PR branch with 'gh pr checkout ${num}', address the requested changes, commit and push.
-The PR will automatically update with your new commits.`;
+
+IMPORTANT: If you need clarification on the feedback, post a comment on the PR.
+The reviewer will respond in a new session.`;
     
   } else {
     console.log('No recognized command found');
@@ -153,13 +168,19 @@ The PR will automatically update with your new commits.`;
   console.log(`Action: ${action}, Task ID: ${taskId}`);
   console.log(`Work directory: ${workDir}`);
   
-  // Set up GitHub App auth environment variables if configured
+  // Set up GitHub App auth if configured
   let claudeEnv = { ...process.env };
-  if (USE_GITHUB_APP) {
-    // Pass GitHub App credentials to subprocess
-    claudeEnv.GITHUB_APP_ID = GITHUB_APP_ID;
-    claudeEnv.GITHUB_APP_PRIVATE_KEY_PATH = GITHUB_APP_PRIVATE_KEY_PATH;
-    console.log('Passing GitHub App credentials to Claude subprocess');
+  if (USE_GITHUB_APP && githubAppAuth) {
+    try {
+      const repoInfo = githubAppAuth.extractRepoInfo(payload);
+      const appToken = await githubAppAuth.getInstallationToken(repoInfo.owner, repoInfo.repo);
+      // gh CLI expects the token as GH_TOKEN or GITHUB_TOKEN
+      claudeEnv.GH_TOKEN = appToken;
+      console.log('Got GitHub App installation token for subprocess');
+    } catch (err) {
+      console.error('Failed to get installation token:', err.message);
+      console.log('Subprocess will use existing gh auth');
+    }
   }
   
   // Clone repository
