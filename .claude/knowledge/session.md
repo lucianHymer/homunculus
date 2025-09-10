@@ -22,3 +22,15 @@
 **Files**: server.js, test-phase2.js
 ---
 
+### [20:21] [architecture] Phase 2 overcomplete implementation details
+**Details**: Phase 2 implementation went beyond requirements and pre-implemented much of Phase 3-5 structure:
+1. Command parsing for all three types ([review], [accept], PR review) already done
+2. Event routing logic complete (issues, issue_comment, pull_request_review)
+3. processWebhook() function handles all webhook types
+4. Work directory structure: /workspace/{repo-name}-{8-char-taskId}
+5. Clone failures handled gracefully with fallback to mkdir
+6. Claude output logged with task ID for debugging
+7. Only thing needed for Phase 3-5: Replace echo test prompts with real gh CLI commands at lines ~92, ~97, ~102 in server.js
+**Files**: server.js, homunculus-plan.md
+---
+
