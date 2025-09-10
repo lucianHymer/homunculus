@@ -198,3 +198,66 @@ smee -u https://smee.io/your-channel -t http://localhost:8080/webhook
 ## That's It!
 
 No complex orchestration. No prompt engineering. No state management. Just a simple webhook → Claude bridge. The homunculus awakens, solves the problem, and goes back to sleep.
+
+## Implementation Phases
+
+### Phase 1: Core Webhook Server
+**Deliverable**: Working webhook server that receives and validates GitHub webhooks
+- Express server with signature verification
+- Basic webhook endpoint that logs valid events
+- Test with smee.io forwarding (free dev tool, not for production)
+
+### Phase 2: Claude Integration
+**Deliverable**: Server can spawn Claude with hardcoded test prompts
+- Implement Claude spawning with detached process
+- Test with simple prompts (e.g., "echo test")
+- Verify Claude executes in cloned repo directory
+
+### Phase 3: Issue Review Command
+**Deliverable**: `@homunculus [review]` posts analysis on GitHub issues
+- Parse issue/comment events for [review] command
+- Clone repo and construct review prompt
+- Claude reads issue via gh CLI and posts comment
+
+### Phase 4: Issue Implementation Command
+**Deliverable**: `@homunculus [accept]` creates PR with solution
+- Handle [accept] command from issues
+- Claude implements solution, creates branch, commits, opens PR
+- PR correctly references original issue
+
+### Phase 5: PR Review Feedback
+**Deliverable**: `@homunculus` in PR reviews triggers fixes
+- Parse pull_request_review events
+- Claude checks out PR branch, addresses feedback
+- Commits and pushes fixes to existing PR
+
+### Phase 6: Production Deployment
+**Deliverable**: Secure, tunneled service accessible from GitHub
+- Cloudflare tunnel setup and configuration
+- Environment variable management
+- Setup script for easy deployment
+- Documentation for webhook configuration in GitHub
+
+## Security Notes
+
+### Smee.io (Development Only)
+- **Cost**: Free, open-source
+- **Security**: Unauthenticated channels - anyone with URL can see payloads
+- **Alternative**: hook.pipelinesascode.com or self-host
+
+### Webhook Payload Contents
+**Non-sensitive data included**:
+- Repository metadata, issue/PR content
+- Usernames, public info
+- Commit SHAs, branch names
+
+**NOT included**:
+- GitHub tokens or passwords
+- Webhook secret (only HMAC signature)
+- Private repo contents (unless in comments)
+
+**Security best practices**:
+- Always verify webhook signatures
+- Use HTTPS for production
+- Never put secrets in webhook URLs
+- Use Cloudflare tunnel for production deployment
