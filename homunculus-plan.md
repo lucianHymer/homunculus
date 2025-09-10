@@ -12,6 +12,10 @@ A simple webhook server that passes GitHub events to Claude Code CLI. Claude doe
 
 That's it. No complex orchestration, no state management. Just wake up Claude and let it work.
 
+## Current Status
+
+**Phase 1 COMPLETED**: Core webhook server is operational with full signature verification, @homunculus mention detection, and testing infrastructure.
+
 ## Quick Setup
 
 ### Prerequisites
@@ -201,17 +205,29 @@ No complex orchestration. No prompt engineering. No state management. Just a sim
 
 ## Implementation Phases
 
-### Phase 1: Core Webhook Server
+### Phase 1: Core Webhook Server ✅ COMPLETED
 **Deliverable**: Working webhook server that receives and validates GitHub webhooks
-- Express server with signature verification
-- Basic webhook endpoint that logs valid events
-- Test with smee.io forwarding (free dev tool, not for production)
+- ✅ Express server with signature verification (server.js)
+- ✅ Basic webhook endpoint that logs valid events
+- ✅ Test with smee.io forwarding (installed as dev dependency)
+- ✅ Environment configuration via .env file
+- ✅ Test script for local webhook testing (test-webhook.js)
+
+**Implementation Notes for Phase 2 Team**:
+- Server runs on port 8080 (configurable via PORT env var)
+- Uses dotenv for environment variables
+- Webhook secret verification using HMAC SHA-256
+- Server currently logs but doesn't persist events
+- Test with: `node server.js` then `node test-webhook.js`
+- Smee client installed locally: `npx smee -u https://smee.io/new -t http://localhost:8080/webhook`
 
 ### Phase 2: Claude Integration
 **Deliverable**: Server can spawn Claude with hardcoded test prompts
 - Implement Claude spawning with detached process
 - Test with simple prompts (e.g., "echo test")
 - Verify Claude executes in cloned repo directory
+- Add WORKSPACE_DIR environment variable support
+- Implement basic repo cloning with gh CLI
 
 ### Phase 3: Issue Review Command
 **Deliverable**: `@homunculus [review]` posts analysis on GitHub issues

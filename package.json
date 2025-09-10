@@ -1,0 +1,27 @@
+{
+  "name": "project",
+  "version": "1.0.0",
+  "description": "<p align=\"center\">     An artificial being, confined to a container, here to     solve all your problems......this is gonna be great!     <br><br>     <img src=\"https://raw.githubusercontent.com/lucianHymer/homunculus/refs/heads/main/assets/homuncul.png\" width=\"320px\" alt=\"Homunculus\"> </p>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucianHymer/homunculus.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lucianHymer/homunculus/issues"
+  },
+  "homepage": "https://github.com/lucianHymer/homunculus#readme",
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "smee-client": "^4.3.1"
+  }
+}

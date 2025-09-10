@@ -25,3 +25,13 @@ GitHub webhook payloads don't contain auth tokens/secrets but include:
 **Files**: homunculus-plan.md
 ---
 
+### [18:01] [architecture] Homunculus webhook server design
+**Details**: Simple webhook → Claude bridge architecture. Server receives GitHub webhooks, verifies signature, checks for @homunculus mention, clones repo, and spawns Claude Code CLI with appropriate prompts. No complex orchestration or state management - just wake Claude and let it work using gh CLI.
+**Files**: homunculus-plan.md
+---
+
+### [18:09] [config] Phase 1 webhook server implementation
+**Details**: Successfully implemented Phase 1 webhook server with Express. Server validates GitHub webhook signatures using HMAC SHA-256, parses payloads to check for @homunculus mentions, and logs events. Configuration via .env file with GITHUB_WEBHOOK_SECRET. Tested with local test script and ready for smee.io integration. Server runs on port 8080 by default.
+**Files**: server.js, .env.example, test-webhook.js
+---
+
