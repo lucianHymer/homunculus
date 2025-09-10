@@ -2,12 +2,16 @@
 require('dotenv').config();
 const express = require('express');
 const crypto = require('crypto');
+const { spawn, execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(express.raw({ type: 'application/json' }));
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
 const PORT = process.env.PORT || 8080;
+const WORKSPACE_DIR = process.env.WORKSPACE_DIR || '/workspace';
 
 function verifySignature(payload, signature) {
   if (!WEBHOOK_SECRET) {
@@ -69,15 +73,107 @@ app.post('/webhook', (req, res) => {
     console.log('PR title:', payload.pull_request.title);
   }
   
-  return res.status(200).send('Webhook received and logged');
+  // Phase 2: Process the webhook and spawn Claude
+  const result = processWebhook(payload, event, body);
+  
+  if (result.action === 'none') {
+    return res.status(200).send('No action needed');
+  }
+  
+  return res.status(202).send(`Homunculus awakened: ${result.action}`);
 });
 
 app.get('/health', (req, res) => {
   res.status(200).send('Homunculus webhook server is running');
 });
 
+function processWebhook(payload, event, body) {
+  const repo = payload.repository?.full_name;
+  if (!repo) {
+    console.error('No repository information in payload');
+    return { action: 'none' };
+  }
+  
+  // Generate unique task ID
+  const taskId = crypto.randomBytes(8).toString('hex');
+  const workDir = path.join(WORKSPACE_DIR, `${repo.replace('/', '-')}-${taskId}`);
+  
+  // Determine action and build prompt
+  let prompt = '';
+  let action = 'none';
+  
+  if (body.includes('[review]') && ['issues', 'issue_comment'].includes(event)) {
+    const num = payload.issue.number;
+    action = 'review';
+    prompt = `echo "Phase 2 Test: Would review issue #${num} in ${repo}"`;
+    
+  } else if (body.includes('[accept]') && ['issues', 'issue_comment'].includes(event)) {
+    const num = payload.issue.number;
+    action = 'accept';
+    prompt = `echo "Phase 2 Test: Would implement issue #${num} in ${repo}"`;
+    
+  } else if (event === 'pull_request_review' && body.includes('@homunculus')) {
+    const num = payload.pull_request.number;
+    action = 'pr-review';
+    prompt = `echo "Phase 2 Test: Would address PR #${num} feedback in ${repo}"`;
+    
+  } else {
+    console.log('No recognized command found');
+    return { action: 'none' };
+  }
+  
+  console.log(`Action: ${action}, Task ID: ${taskId}`);
+  console.log(`Work directory: ${workDir}`);
+  
+  // Clone repository
+  try {
+    console.log(`Cloning repository ${repo}...`);
+    execSync(`gh repo clone ${repo} "${workDir}"`, { 
+      stdio: 'pipe',
+      encoding: 'utf8'
+    });
+    console.log('Repository cloned successfully');
+  } catch (err) {
+    console.error(`Failed to clone ${repo}:`, err.message);
+    // For Phase 2 testing, create directory anyway
+    fs.mkdirSync(workDir, { recursive: true });
+    console.log('Created work directory for testing');
+  }
+  
+  // Spawn Claude with detached process
+  console.log('Spawning Claude with prompt:', prompt);
+  
+  try {
+    const claudeProcess = spawn('claude', ['-p', prompt], {
+      cwd: workDir,
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    
+    // Log initial output for debugging
+    claudeProcess.stdout.on('data', (data) => {
+      console.log(`Claude [${taskId}]:`, data.toString());
+    });
+    
+    claudeProcess.stderr.on('data', (data) => {
+      console.error(`Claude Error [${taskId}]:`, data.toString());
+    });
+    
+    // Detach the process so it continues after server responds
+    claudeProcess.unref();
+    
+    console.log(`Claude spawned with PID: ${claudeProcess.pid}`);
+  } catch (err) {
+    console.error('Failed to spawn Claude:', err.message);
+    return { action: 'error', error: err.message };
+  }
+  
+  return { action, taskId, workDir };
+}
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Homunculus webhook server listening on port ${PORT}`);
+  console.log(`Workspace directory: ${WORKSPACE_DIR}`);
   if (!WEBHOOK_SECRET) {
     console.warn('WARNING: Running without webhook signature verification (GITHUB_WEBHOOK_SECRET not set)');
   }
