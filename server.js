@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const GitHubAppAuth = require('./github-app-auth');
 
 const app = express();
 app.use(express.raw({ type: 'application/json' }));
@@ -12,6 +13,22 @@ app.use(express.raw({ type: 'application/json' }));
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
 const PORT = process.env.PORT || 8080;
 const WORKSPACE_DIR = process.env.WORKSPACE_DIR || '/workspace';
+
+// GitHub App configuration
+const GITHUB_APP_ID = process.env.GITHUB_APP_ID;
+const GITHUB_APP_PRIVATE_KEY_PATH = process.env.GITHUB_APP_PRIVATE_KEY_PATH;
+const USE_GITHUB_APP = GITHUB_APP_ID && GITHUB_APP_PRIVATE_KEY_PATH;
+
+let githubAppAuth;
+if (USE_GITHUB_APP) {
+  try {
+    githubAppAuth = new GitHubAppAuth(GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH);
+    console.log('GitHub App authentication configured');
+  } catch (err) {
+    console.error('Failed to configure GitHub App:', err.message);
+    console.log('Falling back to GH_TOKEN or gh CLI auth');
+  }
+}
 
 function verifySignature(payload, signature) {
   if (!WEBHOOK_SECRET) {
@@ -74,20 +91,25 @@ app.post('/webhook', (req, res) => {
   }
   
   // Phase 2: Process the webhook and spawn Claude
-  const result = processWebhook(payload, event, body);
-  
-  if (result.action === 'none') {
-    return res.status(200).send('No action needed');
-  }
-  
-  return res.status(202).send(`Homunculus awakened: ${result.action}`);
+  processWebhook(payload, event, body)
+    .then(result => {
+      if (result.action === 'none') {
+        res.status(200).send('No action needed');
+      } else {
+        res.status(202).send(`Homunculus awakened: ${result.action}`);
+      }
+    })
+    .catch(err => {
+      console.error('Error processing webhook:', err);
+      res.status(500).send('Internal error');
+    });
 });
 
 app.get('/health', (req, res) => {
   res.status(200).send('Homunculus webhook server is running');
 });
 
-function processWebhook(payload, event, body) {
+async function processWebhook(payload, event, body) {
   const repo = payload.repository?.full_name;
   if (!repo) {
     console.error('No repository information in payload');
@@ -131,12 +153,22 @@ The PR will automatically update with your new commits.`;
   console.log(`Action: ${action}, Task ID: ${taskId}`);
   console.log(`Work directory: ${workDir}`);
   
+  // Set up GitHub App auth environment variables if configured
+  let claudeEnv = { ...process.env };
+  if (USE_GITHUB_APP) {
+    // Pass GitHub App credentials to subprocess
+    claudeEnv.GITHUB_APP_ID = GITHUB_APP_ID;
+    claudeEnv.GITHUB_APP_PRIVATE_KEY_PATH = GITHUB_APP_PRIVATE_KEY_PATH;
+    console.log('Passing GitHub App credentials to Claude subprocess');
+  }
+  
   // Clone repository
   try {
     console.log(`Cloning repository ${repo}...`);
     execSync(`gh repo clone ${repo} "${workDir}"`, { 
       stdio: 'pipe',
-      encoding: 'utf8'
+      encoding: 'utf8',
+      env: claudeEnv
     });
     console.log('Repository cloned successfully');
   } catch (err) {
@@ -153,7 +185,8 @@ The PR will automatically update with your new commits.`;
     const claudeProcess = spawn('claude', ['-p', prompt], {
       cwd: workDir,
       detached: true,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: claudeEnv
     });
     
     // Log initial output for debugging
