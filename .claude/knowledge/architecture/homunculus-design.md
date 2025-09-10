@@ -28,7 +28,7 @@ Implemented as a basic Express webhook receiver with:
 - Event logging (no action taken yet)
 - Environment variables: PORT and GITHUB_WEBHOOK_SECRET
 
-### Phase 2 - Claude Integration (Overcomplete)
+### Phase 2 - Claude Integration ✅
 Successfully implemented with features beyond requirements:
 - Claude spawning with detached processes using spawn()
 - WORKSPACE_DIR environment variable (defaults to /workspace)
@@ -39,9 +39,17 @@ Successfully implemented with features beyond requirements:
 - Complete command parsing ([review], [accept], PR review)
 - Full event routing (issues, issue_comment, pull_request_review)
 - processWebhook() handles all webhook types
-- Ready for Phase 3-5: Only needs real gh CLI commands at lines ~92, ~97, ~102
+
+### Phase 3-5 - GitHub CLI Integration ✅ 
+All three phases completed with full GitHub CLI integration:
+- **Phase 3 ([review])**: gh issue view → Claude analysis → gh issue comment
+- **Phase 4 ([accept])**: gh issue view → Claude implementation → gh pr create
+- **Phase 5 (PR review)**: gh pr view → gh pr checkout → Claude fixes → git push
+- Implemented in server.js lines 108-124
+- Complete webhook-to-Claude bridge functionality achieved
 
 ## Related Files
 - `homunculus-plan.md` - Original design document
 - `server.js` - Main webhook server implementation
 - `test-phase2.js` - Phase 2 testing script
+- `test-phase3.js` - Phase 3-5 testing script
