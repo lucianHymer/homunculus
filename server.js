@@ -105,17 +105,23 @@ function processWebhook(payload, event, body) {
   if (body.includes('[review]') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
     action = 'review';
-    prompt = `echo "Phase 2 Test: Would review issue #${num} in ${repo}"`;
+    prompt = `Use 'gh issue view ${num} -R ${repo} --comments' to read the issue and all comments.
+Post a comment with your analysis and implementation plan using 'gh issue comment ${num} -R ${repo} -b "your analysis here"'.
+Ask clarifying questions if needed.`;
     
   } else if (body.includes('[accept]') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
     action = 'accept';
-    prompt = `echo "Phase 2 Test: Would implement issue #${num} in ${repo}"`;
+    prompt = `Use 'gh issue view ${num} -R ${repo} --comments' to read the issue and discussion.
+Implement the solution in the code, create a new branch, commit your changes, and open a PR.
+Use 'gh pr create' to create the PR and reference issue #${num} in the PR body.`;
     
   } else if (event === 'pull_request_review' && body.includes('@homunculus')) {
     const num = payload.pull_request.number;
     action = 'pr-review';
-    prompt = `echo "Phase 2 Test: Would address PR #${num} feedback in ${repo}"`;
+    prompt = `Use 'gh pr view ${num} -R ${repo} --comments' to read all review feedback.
+Checkout the PR branch with 'gh pr checkout ${num}', address the requested changes, commit and push.
+The PR will automatically update with your new commits.`;
     
   } else {
     console.log('No recognized command found');
