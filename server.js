@@ -123,9 +123,13 @@ async function processWebhook(payload, event, body) {
   // Determine action and build prompt
   let prompt = '';
   let action = 'none';
+  let issueOrPrNumber = null;
+  let isIssue = false;
   
   if (body.includes('///review') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
+    issueOrPrNumber = num;
+    isIssue = true;
     action = 'review';
     prompt = `You are responding to a GitHub issue where you were mentioned.
 
@@ -138,6 +142,8 @@ Do not ask questions here - post them to the issue so the user can respond in a 
     
   } else if (body.includes('///accept') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
+    issueOrPrNumber = num;
+    isIssue = true;
     action = 'accept';
     prompt = `You are implementing a solution for a GitHub issue.
 
@@ -151,6 +157,8 @@ The user will respond in a new session.`;
     
   } else if (event === 'pull_request_review' && body.includes('///')) {
     const num = payload.pull_request.number;
+    issueOrPrNumber = num;
+    isIssue = false;
     action = 'pr-review';
     prompt = `You are responding to PR review feedback.
 
@@ -251,6 +259,7 @@ The reviewer will respond in a new session.`;
     ].join(' ');
     
     const claudeProcess = spawn('claude', [
+      '--output-format', 'json',
       '--allowedTools', allowedTools,
       '-p', prompt
     ], {
@@ -260,13 +269,42 @@ The reviewer will respond in a new session.`;
       env: claudeEnv
     });
     
-    // Log initial output for debugging
+    // Buffer to collect JSON output
+    let outputBuffer = '';
+    let errorBuffer = '';
+    
+    // Collect output for JSON parsing
     claudeProcess.stdout.on('data', (data) => {
+      outputBuffer += data.toString();
+      // Still log for debugging (though it will be JSON chunks)
       console.log(`Claude [${taskId}]:`, data.toString());
     });
     
     claudeProcess.stderr.on('data', (data) => {
+      errorBuffer += data.toString();
       console.error(`Claude Error [${taskId}]:`, data.toString());
+    });
+    
+    // Handle process completion
+    claudeProcess.on('exit', async (code, signal) => {
+      console.log(`Claude process [${taskId}] exited with code ${code}`);
+      
+      // Try to parse JSON output and extract session ID
+      let sessionId = null;
+      try {
+        if (outputBuffer) {
+          const jsonOutput = JSON.parse(outputBuffer);
+          sessionId = jsonOutput.session_id || jsonOutput.sessionId || null;
+          console.log(`Extracted session ID: ${sessionId}`);
+        }
+      } catch (err) {
+        console.error('Failed to parse Claude JSON output:', err.message);
+      }
+      
+      // Post completion comment if we have the necessary info
+      if (issueOrPrNumber && repo) {
+        await postCompletionComment(repo, issueOrPrNumber, isIssue, workDir, sessionId, taskId, claudeEnv);
+      }
     });
     
     // Detach the process so it continues after server responds
@@ -279,6 +317,39 @@ The reviewer will respond in a new session.`;
   }
   
   return { action, taskId, workDir };
+}
+
+async function postCompletionComment(repo, number, isIssue, workDir, sessionId, taskId, env) {
+  try {
+    console.log(`Posting completion comment to ${isIssue ? 'issue' : 'PR'} #${number}`);
+    
+    // Build the comment body
+    let commentBody = `🤖 Homunculus task completed!\n\n`;
+    commentBody += `📂 **Workspace:** \`${workDir}\`\n`;
+    
+    if (sessionId) {
+      commentBody += `🔖 **Session ID:** \`${sessionId}\`\n`;
+      commentBody += `🔄 **Resume:** \`cd ${workDir} && claude --resume ${sessionId}\`\n`;
+    } else {
+      commentBody += `⚠️ _Session ID not available (JSON parsing may have failed)_\n`;
+      commentBody += `📝 **Task ID:** \`${taskId}\`\n`;
+    }
+    
+    // Use gh CLI to post the comment
+    const ghCommand = isIssue 
+      ? `gh issue comment ${number} -R ${repo} -b "${commentBody.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`
+      : `gh pr comment ${number} -R ${repo} -b "${commentBody.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+    
+    execSync(ghCommand, {
+      stdio: 'pipe',
+      encoding: 'utf8',
+      env: env
+    });
+    
+    console.log('Completion comment posted successfully');
+  } catch (err) {
+    console.error('Failed to post completion comment:', err.message);
+  }
 }
 
 app.listen(PORT, '0.0.0.0', () => {
