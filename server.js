@@ -154,8 +154,19 @@ The user will respond in a new session.`;
     action = 'pr-review';
     prompt = `You are responding to PR review feedback.
 
-Use 'gh pr view ${num} -R ${repo} --comments' to read all review feedback.
-Checkout the PR branch with 'gh pr checkout ${num}', address the requested changes, commit and use 'git push' to push your changes.
+CRITICAL: Review feedback often includes inline comments that are NOT visible with --comments flag.
+
+1. First, use 'gh pr view ${num} -R ${repo} --comments' to see general PR comments
+2. THEN use 'gh api repos/${repo}/pulls/${num}/reviews' to list all reviews
+3. For each review with comments_count > 0, fetch inline comments:
+   'gh api repos/${repo}/pulls/${num}/reviews/{review_id}/comments'
+   
+This ensures you see ALL feedback including inline code comments.
+
+After reading all feedback:
+- Checkout the PR branch with 'gh pr checkout ${num}'
+- Address ALL requested changes from both general and inline comments
+- Commit your changes and use 'git push' to push them
 
 IMPORTANT: If you need clarification on the feedback, post a comment on the PR.
 The reviewer will respond in a new session.`;
