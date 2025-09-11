@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const GitHubAppAuth = require('./github-app-auth');
 
 const app = express();
@@ -335,10 +336,14 @@ async function postCompletionComment(repo, number, isIssue, workDir, sessionId, 
       commentBody += `📝 **Task ID:** \`${taskId}\`\n`;
     }
     
-    // Use gh CLI to post the comment
+    // Write comment to temporary file to avoid escaping issues
+    const tempFile = path.join(os.tmpdir(), `comment-${taskId}.md`);
+    fs.writeFileSync(tempFile, commentBody);
+    
+    // Use gh CLI to post the comment with -F flag for file input
     const ghCommand = isIssue 
-      ? `gh issue comment ${number} -R ${repo} -b "${commentBody.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`
-      : `gh pr comment ${number} -R ${repo} -b "${commentBody.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+      ? `gh issue comment ${number} -R ${repo} -F ${tempFile}`
+      : `gh pr comment ${number} -R ${repo} -F ${tempFile}`;
     
     execSync(ghCommand, {
       stdio: 'pipe',
@@ -347,6 +352,13 @@ async function postCompletionComment(repo, number, isIssue, workDir, sessionId, 
     });
     
     console.log('Completion comment posted successfully');
+    
+    // Clean up temporary file
+    try {
+      fs.unlinkSync(tempFile);
+    } catch (cleanupErr) {
+      console.log('Failed to clean up temp file:', cleanupErr.message);
+    }
   } catch (err) {
     console.error('Failed to post completion comment:', err.message);
   }
