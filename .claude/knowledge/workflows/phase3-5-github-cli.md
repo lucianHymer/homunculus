@@ -21,7 +21,8 @@ When @homunculus [accept] is mentioned in an issue comment:
 When @homunculus is mentioned in a PR review:
 - Uses `gh pr view` to read PR and review feedback
 - Checks out PR branch with `gh pr checkout`
-- Claude addresses feedback and pushes fixes
+- Sets up git credentials with `git config --global credential.helper "!gh auth git-credential"`
+- Claude addresses feedback and pushes fixes with `git push`
 
 ## Technical Implementation
 - All phases implemented in single update to server.js (lines 108-124)

@@ -45,7 +45,7 @@ Successfully implemented with features beyond requirements:
 All three phases completed with full GitHub CLI integration:
 - **Phase 3 ([review])**: gh issue view → Claude analysis → gh issue comment
 - **Phase 4 ([accept])**: gh issue view → Claude implementation → gh pr create
-- **Phase 5 (PR review)**: gh pr view → gh pr checkout → Claude fixes → git push
+- **Phase 5 (PR review)**: gh pr view → gh pr checkout → git credential setup → Claude fixes → git push
 - Implemented in server.js lines 108-124
 - Complete webhook-to-Claude bridge functionality achieved
 

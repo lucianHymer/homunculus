@@ -154,8 +154,19 @@ The user will respond in a new session.`;
     action = 'pr-review';
     prompt = `You are responding to PR review feedback.
 
-Use 'gh pr view ${num} -R ${repo} --comments' to read all review feedback.
-Checkout the PR branch with 'gh pr checkout ${num}', address the requested changes, commit and push.
+CRITICAL: Review feedback often includes inline comments that are NOT visible with --comments flag.
+
+1. First, use 'gh pr view ${num} -R ${repo} --comments' to see general PR comments
+2. THEN use 'gh api repos/${repo}/pulls/${num}/reviews' to list all reviews
+3. For each review with comments_count > 0, fetch inline comments:
+   'gh api repos/${repo}/pulls/${num}/reviews/{review_id}/comments'
+   
+This ensures you see ALL feedback including inline code comments.
+
+After reading all feedback:
+- Checkout the PR branch with 'gh pr checkout ${num}'
+- Address ALL requested changes from both general and inline comments
+- Commit your changes and use 'git push' to push them
 
 IMPORTANT: If you need clarification on the feedback, post a comment on the PR.
 The reviewer will respond in a new session.`;
@@ -206,6 +217,19 @@ The reviewer will respond in a new session.`;
     console.log('Created work directory for testing');
   }
   
+  // Set up git credential helper for all actions (they all may need to push)
+  try {
+    console.log('Setting up git credential helper...');
+    execSync('git config --global credential.helper "!gh auth git-credential"', {
+      stdio: 'pipe',
+      encoding: 'utf8',
+      env: claudeEnv
+    });
+    console.log('Git credential helper configured');
+  } catch (err) {
+    console.error('Failed to set up git credential helper:', err.message);
+  }
+  
   // Spawn Claude with detached process
   console.log('Spawning Claude with prompt:', prompt);
   
@@ -214,6 +238,7 @@ The reviewer will respond in a new session.`;
     const allowedTools = [
       'Bash(gh:*)',      // All gh CLI commands
       'Bash(git:*)',     // All git commands
+      'mcp__mim__remember', // MCP remember tool
       'Read',            // Reading files
       'Write',           // Writing files  
       'Edit',            // Editing files
