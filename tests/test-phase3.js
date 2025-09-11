@@ -61,7 +61,7 @@ switch (testScenario) {
       issue: {
         number: 42,
         title: 'Add a hello world function',
-        body: 'Please add a simple hello world function to our codebase. @homunculus [review]'
+        body: 'Please add a simple hello world function to our codebase. ///review'
       },
       repository: {
         full_name: 'test-org/test-repo'
