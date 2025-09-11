@@ -168,14 +168,59 @@ async function processWebhook(payload, event, body) {
     issueOrPrNumber = num;
     isIssue = true;
     action = 'review';
-    prompt = `You are responding to a GitHub issue where you were mentioned.
+    prompt = `You are conducting a technical review of a GitHub issue for handoff to another agent.
 
-First, use 'gh issue view ${num} -R ${repo} --comments' to read the issue and all comments.
+CONTEXT: You are the FIRST agent. The NEXT agent will:
+- Have access ONLY to this issue and your review comment
+- Start with a fresh Claude instance with NO prior knowledge
+- Not see any of your working context or memory
 
-Then post your analysis using 'gh issue comment ${num} -R ${repo} -b "your analysis here"'.
+Therefore, your review MUST be completely self-contained and comprehensive.
 
-IMPORTANT: If you have any clarifying questions, ask them IN THE GITHUB ISSUE COMMENT.
-Do not ask questions here - post them to the issue so the user can respond in a new session.`;
+INSTRUCTIONS:
+1. First, use 'gh issue view ${num} -R ${repo} --comments' to read the issue and all comments
+2. Analyze the request thoroughly, considering implementation details
+3. Run quick tests to verify your assumptions where applicable/practical (e.g., test file existence, check dependencies, validate syntax)
+4. Post a structured review using 'gh issue comment ${num} -R ${repo} -b "your review"'
+
+Your review comment MUST use this EXACT structure with ALL sections:
+
+## Analysis: [Brief Issue Title]
+
+### 📋 Problem Definition
+[Clear, complete statement of what needs to be solved/built. Include specific requirements.]
+
+### 🔧 Technical Scope
+- **Affected Files**: [List specific files that need modification or creation]
+- **Dependencies**: [Any libraries, APIs, or systems involved]
+- **Architecture**: [Relevant patterns or system design considerations]
+
+### 💡 Implementation Approach
+[Suggested technical approach with specific steps. Be detailed - the implementer has no context.]
+
+### ✅ Success Criteria
+[Specific, testable criteria to verify the solution works correctly]
+- [ ] [Criterion 1]
+- [ ] [Criterion 2]
+- [ ] [Add more as needed]
+
+### 🧪 Testing Requirements
+[What tests to write/run, including specific test commands if known]
+
+### ⚠️ Edge Cases & Constraints
+[Known limitations, special cases, or gotchas to watch out for]
+
+### 📝 Additional Context
+[Any other information the implementer needs - assume they know NOTHING about this project]
+
+IMPORTANT CHECKLIST before posting:
+- Have you included ALL context needed for implementation?
+- Are file paths and dependencies explicitly listed?
+- Is the success criteria specific and testable?
+- Would someone with NO prior knowledge understand what to build?
+
+If you need clarification on requirements, ask questions IN THE GITHUB ISSUE COMMENT.
+The user will respond in a new session.`;
     
   } else if (body.includes('///accept') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
@@ -185,6 +230,8 @@ Do not ask questions here - post them to the issue so the user can respond in a 
     prompt = `You are implementing a solution for a GitHub issue.
 
 First, use 'gh issue view ${num} -R ${repo} --comments' to read the issue and discussion.
+
+Run quick tests to verify your assumptions where applicable/practical before and during implementation (e.g., test existing functionality, validate approaches, check dependencies).
 
 Then implement the solution, create a new branch, commit your changes, and open a PR.
 Use 'gh pr create' to create the PR and reference issue #${num} in the PR body.
@@ -210,6 +257,7 @@ This ensures you see ALL feedback including inline code comments.
 
 After reading all feedback:
 - Checkout the PR branch with 'gh pr checkout ${num}'
+- Run quick tests to verify your understanding of the feedback and validate your fixes (e.g., test that changes work as expected, verify edge cases)
 - Address ALL requested changes from both general and inline comments
 - Commit your changes and use 'git push' to push them
 
