@@ -69,14 +69,14 @@ app.post('/webhook', (req, res) => {
                payload.issue?.body || 
                payload.review?.body || '';
   
-  console.log(`Checking for @homunculus mention in: "${body.substring(0, 100)}..."`);
+  console.log(`Checking for /// commands in: "${body.substring(0, 100)}..."`);
   
-  if (!body.includes('@homunculus')) {
-    console.log('No @homunculus mention found');
-    return res.status(200).send('Not mentioned');
+  if (!body.includes('///')) {
+    console.log('No /// command found');
+    return res.status(200).send('No command');
   }
   
-  console.log('Found @homunculus mention!');
+  console.log('Found /// command!');
   console.log('Repository:', payload.repository?.full_name);
   console.log('Action:', payload.action);
   
@@ -96,7 +96,7 @@ app.post('/webhook', (req, res) => {
       if (result.action === 'none') {
         res.status(200).send('No action needed');
       } else {
-        res.status(202).send(`Homunculus awakened: ${result.action}`);
+        res.status(202).send(`Command triggered: ${result.action}`);
       }
     })
     .catch(err => {
@@ -124,7 +124,7 @@ async function processWebhook(payload, event, body) {
   let prompt = '';
   let action = 'none';
   
-  if (body.includes('[review]') && ['issues', 'issue_comment'].includes(event)) {
+  if (body.includes('///review') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
     action = 'review';
     prompt = `You are responding to a GitHub issue where you were mentioned.
@@ -136,7 +136,7 @@ Then post your analysis using 'gh issue comment ${num} -R ${repo} -b "your analy
 IMPORTANT: If you have any clarifying questions, ask them IN THE GITHUB ISSUE COMMENT.
 Do not ask questions here - post them to the issue so the user can respond in a new session.`;
     
-  } else if (body.includes('[accept]') && ['issues', 'issue_comment'].includes(event)) {
+  } else if (body.includes('///accept') && ['issues', 'issue_comment'].includes(event)) {
     const num = payload.issue.number;
     action = 'accept';
     prompt = `You are implementing a solution for a GitHub issue.
@@ -149,7 +149,7 @@ Use 'gh pr create' to create the PR and reference issue #${num} in the PR body.
 IMPORTANT: If you need clarification, post questions to the issue using 'gh issue comment'.
 The user will respond in a new session.`;
     
-  } else if (event === 'pull_request_review' && body.includes('@homunculus')) {
+  } else if (event === 'pull_request_review' && body.includes('///')) {
     const num = payload.pull_request.number;
     action = 'pr-review';
     prompt = `You are responding to PR review feedback.
