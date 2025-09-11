@@ -180,7 +180,8 @@ Therefore, your review MUST be completely self-contained and comprehensive.
 INSTRUCTIONS:
 1. First, use 'gh issue view ${num} -R ${repo} --comments' to read the issue and all comments
 2. Analyze the request thoroughly, considering implementation details
-3. Post a structured review using 'gh issue comment ${num} -R ${repo} -b "your review"'
+3. Run quick tests to verify your assumptions where applicable/practical (e.g., test file existence, check dependencies, validate syntax)
+4. Post a structured review using 'gh issue comment ${num} -R ${repo} -b "your review"'
 
 Your review comment MUST use this EXACT structure with ALL sections:
 
@@ -230,6 +231,8 @@ The user will respond in a new session.`;
 
 First, use 'gh issue view ${num} -R ${repo} --comments' to read the issue and discussion.
 
+Run quick tests to verify your assumptions where applicable/practical before and during implementation (e.g., test existing functionality, validate approaches, check dependencies).
+
 Then implement the solution, create a new branch, commit your changes, and open a PR.
 Use 'gh pr create' to create the PR and reference issue #${num} in the PR body.
 
@@ -254,6 +257,7 @@ This ensures you see ALL feedback including inline code comments.
 
 After reading all feedback:
 - Checkout the PR branch with 'gh pr checkout ${num}'
+- Run quick tests to verify your understanding of the feedback and validate your fixes (e.g., test that changes work as expected, verify edge cases)
 - Address ALL requested changes from both general and inline comments
 - Commit your changes and use 'git push' to push them
 
