@@ -155,7 +155,7 @@ The user will respond in a new session.`;
     prompt = `You are responding to PR review feedback.
 
 Use 'gh pr view ${num} -R ${repo} --comments' to read all review feedback.
-Checkout the PR branch with 'gh pr checkout ${num}', address the requested changes, commit and push.
+Checkout the PR branch with 'gh pr checkout ${num}', address the requested changes, commit and use 'git push' to push your changes.
 
 IMPORTANT: If you need clarification on the feedback, post a comment on the PR.
 The reviewer will respond in a new session.`;
@@ -199,6 +199,19 @@ The reviewer will respond in a new session.`;
     console.log('Created work directory for testing');
   }
   
+  // Set up git credential helper for all actions (they all may need to push)
+  try {
+    console.log('Setting up git credential helper...');
+    execSync('git config --global credential.helper "!gh auth git-credential"', {
+      stdio: 'pipe',
+      encoding: 'utf8',
+      env: claudeEnv
+    });
+    console.log('Git credential helper configured');
+  } catch (err) {
+    console.error('Failed to set up git credential helper:', err.message);
+  }
+  
   // Spawn Claude with detached process
   console.log('Spawning Claude with prompt:', prompt);
   
@@ -207,6 +220,7 @@ The reviewer will respond in a new session.`;
     const allowedTools = [
       'Bash(gh:*)',      // All gh CLI commands
       'Bash(git:*)',     // All git commands
+      'mcp__mim__remember', // MCP remember tool
       'Read',            // Reading files
       'Write',           // Writing files  
       'Edit',            // Editing files
