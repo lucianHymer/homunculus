@@ -10,7 +10,8 @@ const testFiles = {
   github: 'test-github-app.js',
   'github-token': 'test-gh-with-app-token.js',
   phase2: 'test-phase2.js',
-  phase3: 'test-phase3.js'
+  phase3: 'test-phase3.js',
+  'bot-filtering': 'test-bot-filtering.js'
 };
 
 const testName = process.argv[2];
