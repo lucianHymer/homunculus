@@ -21,8 +21,8 @@ implement, or review code changes.
 
 ## 🚀 Features
 
-- **Automated Issue Review**: Use `/// [review]` in an issue to get Claude's analysis
-- **Solution Implementation**: Use `/// [accept]` to have Claude implement a solution and PR
+- **Automated Issue Review**: Use `///review` in an issue to get Claude's analysis
+- **Solution Implementation**: Use `///accept` to have Claude implement a solution and PR
 - **PR Review Responses**: Use `///` in PR reviews to have Claude address feedback
 - **Secure Webhook Handling**: HMAC signature validation for GitHub webhooks
 - **GitHub App Authentication**: Supports both PAT and GitHub App authentication
@@ -129,7 +129,7 @@ npx smee -u https://smee.io/YOUR_CHANNEL_ID -t http://localhost:8080/webhook
 ### Review an Issue
 Create an issue with:
 ```
-/// [review]
+///review
 
 The application crashes when processing large files...
 ```
@@ -137,7 +137,7 @@ The application crashes when processing large files...
 ### Implement a Solution
 Comment on an issue:
 ```
-/// [accept]
+///accept
 ```
 
 ### Address PR Feedback
