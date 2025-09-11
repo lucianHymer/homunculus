@@ -410,6 +410,11 @@ The reviewer will respond in a new session.`;
       }
     });
     
+    // Post start comment immediately after spawning
+    if (issueOrPrNumber && repo) {
+      await postStartComment(repo, issueOrPrNumber, isIssue, action, taskId, claudeEnv);
+    }
+    
     // Detach the process so it continues after server responds
     claudeProcess.unref();
     
@@ -420,6 +425,62 @@ The reviewer will respond in a new session.`;
   }
   
   return { action, taskId, workDir };
+}
+
+async function postStartComment(repo, number, isIssue, action, taskId, env) {
+  try {
+    console.log(`Posting start comment to ${isIssue ? 'issue' : 'PR'} #${number}`);
+    
+    // Determine the task type for display
+    let taskType;
+    switch(action) {
+      case 'review':
+        taskType = 'Review';
+        break;
+      case 'accept':
+        taskType = 'Implementation';
+        break;
+      case 'pr-review':
+        taskType = 'PR Review';
+        break;
+      default:
+        taskType = 'Task';
+    }
+    
+    // Build the comment body
+    let commentBody = `🚀 **Homunculus task started!**\n\n`;
+    commentBody += `📋 **Task Type:** ${taskType}\n`;
+    commentBody += `🔖 **Task ID:** \`${taskId}\`\n`;
+    commentBody += `⏳ **Status:** Processing...\n\n`;
+    commentBody += `_The bot is now working on your request. You'll receive another comment when the task is complete._`;
+    
+    // Write comment to temporary file to avoid escaping issues
+    const tempFile = path.join(os.tmpdir(), `start-comment-${taskId}.md`);
+    fs.writeFileSync(tempFile, commentBody);
+    
+    // Use gh CLI to post the comment with -F flag for file input
+    const ghCommand = isIssue 
+      ? `gh issue comment ${number} -R ${repo} -F ${tempFile}`
+      : `gh pr comment ${number} -R ${repo} -F ${tempFile}`;
+    
+    execSync(ghCommand, {
+      stdio: 'pipe',
+      encoding: 'utf8',
+      env: env
+    });
+    
+    console.log('Start comment posted successfully');
+    
+    // Clean up temporary file
+    try {
+      fs.unlinkSync(tempFile);
+    } catch (cleanupErr) {
+      console.log('Failed to clean up temp file:', cleanupErr.message);
+    }
+  } catch (err) {
+    console.error('Failed to post start comment:', err.message);
+    // Don't throw - we want Claude to proceed even if comment fails
+  }
 }
 
 async function postCompletionComment(repo, number, isIssue, workDir, sessionId, taskId, env) {
