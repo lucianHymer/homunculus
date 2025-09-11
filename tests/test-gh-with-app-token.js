@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('dotenv').config();
-const GitHubAppAuth = require('./github-app-auth');
+const GitHubAppAuth = require('../github-app-auth');
 const { execSync, spawn } = require('child_process');
 
 async function testGhWithAppToken() {

@@ -32,3 +32,31 @@ For GitHub Apps, we need to get an installation token and pass it as GH_TOKEN or
 **Files**: server.js, test-claude-subprocess.js
 ---
 
+### [23:59] [gotcha] GitHub App naming constraints
+**Details**: GitHub Apps cannot use @ mentions like users - they have different invocation patterns. Also, the name "homunculus" is already taken by an existing GitHub user, preventing us from using it as an app name. Need to find alternative naming and invocation strategy.
+**Files**: server.js
+---
+
+### [00:04] [gotcha] GitHub slash commands are not native
+**Details**: GitHub does NOT have native slash command support with autocomplete like Discord/Slack. The "slash commands" people implement are just parsing regular comments for patterns like /deploy. GitHub Copilot has slash commands in VS Code, but that's different from GitHub.com. We'll need to stick with @mentions or keyword detection in comments. GitHub Apps can't add real slash commands to the GitHub UI.
+**Files**: server.js
+---
+
+### [00:05] [gotcha] GitHub native slash commands exist but are built-in only
+**Details**: GitHub DOES have native slash commands with autocomplete (/close, /assign, /label, /duplicate, etc.) but these are built-in GitHub features only. Third-party apps and bots CANNOT add custom slash commands to this autocomplete system. Custom "slash commands" from bots are just pattern matching in regular comments. We cannot make our bot integrate with GitHub's slash command autocomplete.
+**Files**: server.js
+---
+
+### [00:07] [pattern] Triple-slash command pattern for bot invocation
+**Details**: Instead of @mentions or GitHub App, using ///accept and ///review as custom command patterns in comments. This avoids naming conflicts and doesn't require a GitHub user account. For PR reviews, need to determine a pattern - possibly just ///review in PR review comments or ///fix for addressing feedback.
+**Files**: server.js
+---
+
+### [00:18] [pattern] Command pattern changed from @homunculus to ///
+**Details**: The project has switched from using @homunculus mentions to /// command pattern for triggering Claude in GitHub issues and PRs. This is a cleaner, more concise syntax. Commands are:
+- /// [review] - for issue review
+- /// [accept] - for implementing solutions
+- /// - in PR reviews for addressing feedback
+**Files**: README.md, server.js
+---
+
