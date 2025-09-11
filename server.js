@@ -169,7 +169,14 @@ The reviewer will respond in a new session.`;
   console.log(`Work directory: ${workDir}`);
   
   // Set up GitHub App auth if configured
-  let claudeEnv = { ...process.env };
+  let claudeEnv = { 
+    ...process.env,
+    // Git config for commits
+    GIT_AUTHOR_NAME: 'dwarf-in-the-flask[bot]',
+    GIT_AUTHOR_EMAIL: 'dwarf-in-the-flask[bot]@users.noreply.github.com',
+    GIT_COMMITTER_NAME: 'dwarf-in-the-flask[bot]',
+    GIT_COMMITTER_EMAIL: 'dwarf-in-the-flask[bot]@users.noreply.github.com'
+  };
   if (USE_GITHUB_APP && githubAppAuth) {
     try {
       const repoInfo = githubAppAuth.extractRepoInfo(payload);
@@ -213,11 +220,13 @@ The reviewer will respond in a new session.`;
       'MultiEdit',       // Multiple edits
       'Grep',            // Searching
       'Glob',            // File patterns
-      'TodoWrite'        // Task management
+      'TodoWrite',       // Task management
+      'WebSearch',       // Web search for documentation
+      'Task'             // Launch subtasks
     ].join(' ');
     
     const claudeProcess = spawn('claude', [
-      '--allowed-tools', allowedTools,
+      '--allowedTools', allowedTools,
       '-p', prompt
     ], {
       cwd: workDir,
