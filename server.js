@@ -20,6 +20,19 @@ const GITHUB_APP_ID = process.env.GITHUB_APP_ID;
 const GITHUB_APP_PRIVATE_KEY_PATH = process.env.GITHUB_APP_PRIVATE_KEY_PATH;
 const USE_GITHUB_APP = GITHUB_APP_ID && GITHUB_APP_PRIVATE_KEY_PATH;
 
+// Track recently processed commands to prevent duplicates
+const recentlyProcessed = new Set();
+// Clean up old entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const key of recentlyProcessed) {
+    const timestamp = parseInt(key.split('-').pop());
+    if (now - timestamp > 300000) { // 5 minutes
+      recentlyProcessed.delete(key);
+    }
+  }
+}, 300000);
+
 let githubAppAuth;
 if (USE_GITHUB_APP) {
   try {
@@ -66,11 +79,34 @@ app.post('/webhook', (req, res) => {
   
   const payload = JSON.parse(req.body.toString());
   
+  // Filter out actions we don't want to process
+  const allowedActions = {
+    'issues': ['opened', 'edited'],
+    'issue_comment': ['created'],
+    'pull_request_review': ['submitted']
+  };
+  
+  if (!allowedActions[event]?.includes(payload.action)) {
+    console.log(`Ignoring ${event} with action: ${payload.action}`);
+    return res.status(200).send('Action not processed');
+  }
+  
+  // Skip if comment is from the bot itself to prevent feedback loops
+  const authorLogin = payload.comment?.user?.login || 
+                     payload.issue?.user?.login ||
+                     payload.sender?.login;
+  
+  if (authorLogin === 'dwarf-in-the-flask[bot]' || 
+      authorLogin?.endsWith('[bot]')) {
+    console.log('Ignoring bot\'s own comment');
+    return res.status(200).send('Bot comment ignored');
+  }
+  
   const body = payload.comment?.body || 
                payload.issue?.body || 
                payload.review?.body || '';
   
-  console.log(`Checking for /// commands in: "${body.substring(0, 100)}..."`);
+  console.log(`Checking for /// commands in: "${body.substring(0, 100)}..."`)
   
   if (!body.includes('///')) {
     console.log('No /// command found');
@@ -184,6 +220,24 @@ The reviewer will respond in a new session.`;
     console.log('No recognized command found');
     return { action: 'none' };
   }
+  
+  // Check for duplicate processing within last 60 seconds
+  const commandKey = `${repo}#${issueOrPrNumber}-${action}`;
+  const now = Date.now();
+  
+  // Check if this exact command was processed recently
+  for (const key of recentlyProcessed) {
+    if (key.startsWith(commandKey)) {
+      const timestamp = parseInt(key.split('-').pop());
+      if (now - timestamp < 60000) { // 60 seconds
+        console.log('Command recently processed, skipping duplicate');
+        return { action: 'none' };
+      }
+    }
+  }
+  
+  // Add to recently processed
+  recentlyProcessed.add(`${commandKey}-${now}`);
   
   console.log(`Action: ${action}, Task ID: ${taskId}`);
   console.log(`Work directory: ${workDir}`);
