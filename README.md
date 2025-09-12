@@ -83,7 +83,7 @@ npm run dev
 
 ### Background Mode
 ```bash
-nohup node server.js > server.log 2>&1 &
+nohup node src/server.js > server.log 2>&1 &
 ```
 
 ## 🧪 Testing
@@ -167,10 +167,10 @@ Homunculus follows a simple webhook → Claude bridge architecture:
 
 ### Installation Restrictions
 
-When running as a public GitHub App, you can restrict which installations are allowed to use the bot by modifying the `ALLOWED_INSTALLATIONS` array in `server.js`:
+When running as a public GitHub App, you can restrict which installations are allowed to use the bot by modifying the `ALLOWED_INSTALLATIONS` array in `src/server.js`:
 
 ```javascript
-// In server.js
+// In src/server.js
 const ALLOWED_INSTALLATIONS = [
   12345678,  // Your installation ID
   87654321   // Another allowed installation
