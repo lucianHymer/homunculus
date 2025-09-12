@@ -20,6 +20,13 @@ const GITHUB_APP_ID = process.env.GITHUB_APP_ID;
 const GITHUB_APP_PRIVATE_KEY_PATH = process.env.GITHUB_APP_PRIVATE_KEY_PATH;
 const USE_GITHUB_APP = GITHUB_APP_ID && GITHUB_APP_PRIVATE_KEY_PATH;
 
+// Hardcoded allowlist of installation IDs
+// Set to null/empty to allow all installations (development mode)
+const ALLOWED_INSTALLATIONS = [
+  // Add your allowed installation IDs here as numbers
+  // Example: 12345678, 87654321
+];
+
 // Track recently processed commands to prevent duplicates
 const recentlyProcessed = new Set();
 // Clean up old entries every 5 minutes
@@ -78,6 +85,25 @@ app.post('/webhook', (req, res) => {
   }
   
   const payload = JSON.parse(req.body.toString());
+  
+  // Check installation ID if allowlist is configured
+  if (ALLOWED_INSTALLATIONS && ALLOWED_INSTALLATIONS.length > 0) {
+    const installationId = payload.installation?.id;
+    
+    if (!installationId) {
+      console.error('No installation ID in webhook payload (likely not from GitHub App)');
+      return res.status(403).send('Installation not authorized - GitHub App required');
+    }
+    
+    if (!ALLOWED_INSTALLATIONS.includes(installationId)) {
+      console.error(`Installation ID ${installationId} not in allowlist`);
+      return res.status(403).send(`Installation ${installationId} not authorized`);
+    }
+    
+    console.log(`Installation ID ${installationId} authorized`);
+  } else {
+    console.log('Installation allowlist not configured - accepting all installations');
+  }
   
   // Filter out actions we don't want to process
   const allowedActions = {
