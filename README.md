@@ -165,6 +165,29 @@ Homunculus follows a simple webhook → Claude bridge architecture:
 - Never commit `.env` or private keys
 - Consider rate limiting for production deployments
 
+### Installation Restrictions
+
+When running as a public GitHub App, you can restrict which installations are allowed to use the bot by modifying the `ALLOWED_INSTALLATIONS` array in `server.js`:
+
+```javascript
+// In server.js
+const ALLOWED_INSTALLATIONS = [
+  12345678,  // Your installation ID
+  87654321   // Another allowed installation
+];
+```
+
+To find your installation ID:
+1. Look at the webhook payload's `installation.id` field
+2. Or check the server logs when a webhook is received
+
+When the allowlist is configured:
+- Only webhooks from listed installation IDs will be processed
+- Non-GitHub App webhooks (using PAT) will be rejected
+- Unauthorized installations receive a 403 response
+
+Leave the array empty to allow all installations (development mode).
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
