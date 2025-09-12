@@ -23,8 +23,7 @@ const USE_GITHUB_APP = GITHUB_APP_ID && GITHUB_APP_PRIVATE_KEY_PATH;
 // Hardcoded allowlist of installation IDs
 // Set to null/empty to allow all installations (development mode)
 const ALLOWED_INSTALLATIONS = [
-  // Add your allowed installation IDs here as numbers
-  // Example: 12345678, 87654321
+  85319267
 ];
 
 // Track recently processed commands to prevent duplicates
@@ -86,13 +85,13 @@ app.post('/webhook', (req, res) => {
   
   const payload = JSON.parse(req.body.toString());
   
-  // Check installation ID if allowlist is configured
-  if (ALLOWED_INSTALLATIONS && ALLOWED_INSTALLATIONS.length > 0) {
+  // Check installation ID if using GitHub App mode
+  if (USE_GITHUB_APP) {
     const installationId = payload.installation?.id;
     
     if (!installationId) {
-      console.error('No installation ID in webhook payload (likely not from GitHub App)');
-      return res.status(403).send('Installation not authorized - GitHub App required');
+      console.error('No installation ID in webhook payload (webhook not from GitHub App)');
+      return res.status(403).send('Installation not authorized - GitHub App webhook required');
     }
     
     if (!ALLOWED_INSTALLATIONS.includes(installationId)) {
@@ -101,8 +100,6 @@ app.post('/webhook', (req, res) => {
     }
     
     console.log(`Installation ID ${installationId} authorized`);
-  } else {
-    console.log('Installation allowlist not configured - accepting all installations');
   }
   
   // Filter out actions we don't want to process
@@ -628,6 +625,18 @@ async function postCompletionComment(repo, number, isIssue, workDir, sessionId, 
   } catch (err) {
     console.error('Failed to post completion comment:', err.message);
   }
+}
+
+// Startup validation for GitHub App configuration
+if (USE_GITHUB_APP) {
+  if (!ALLOWED_INSTALLATIONS || ALLOWED_INSTALLATIONS.length === 0) {
+    console.error('ERROR: GitHub App is configured but no installation IDs are in the allowlist.');
+    console.error('Please add at least one installation ID to ALLOWED_INSTALLATIONS in server.js');
+    process.exit(1);
+  }
+  console.log(`GitHub App mode enabled with ${ALLOWED_INSTALLATIONS.length} allowed installation(s):`, ALLOWED_INSTALLATIONS);
+} else {
+  console.log('GitHub App mode not configured - using personal access token or existing gh CLI auth');
 }
 
 app.listen(PORT, '0.0.0.0', () => {
