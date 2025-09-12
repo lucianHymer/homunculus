@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('dotenv').config();
-const GitHubAppAuth = require('../github-app-auth');
+const GitHubAppAuth = require('../src/github-app-auth');
 
 // Test the GitHub App authentication
 async function testGitHubApp() {
